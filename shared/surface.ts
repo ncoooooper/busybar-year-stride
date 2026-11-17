@@ -1,9 +1,11 @@
+import { makeMotion, type MotionOptions, type MotionCue, type MotionEvent, type ActionKey } from "./motion";
 import { device } from "./device";
 import manifest from "../src/appmeta/manifest.json";
 import type { DisplayDrawParams } from "@busy-app/busy-lib";
 
 export type Frame = DisplayDrawParams["elements"];
-export type Key = "up" | "down" | "ok" | "start" | "hold-ok" | "hold-start";
+export type Key = ActionKey;
+export type { MotionCue, MotionOptions, Motif } from "./motion";
 export const white = "#FFFFFFFF";
 export const mint = "#62EAC2FF";
 export const amber = "#FFB459FF";
@@ -24,46 +26,119 @@ export function read<T>(key:string,fallback:T):T {
 }
 export function persist(key:string,value:unknown) {localStorage.setItem(key,JSON.stringify(value));}
 export function report(error:unknown) {console.error(manifest.id+": "+String(error));}
-export function surface(draw:()=>Frame, input:(key:Key)=>void, cleanup?:()=>void) {
-  let closed=false, painting=false, dirty=false;
-  const previous:Record<string,string>={};
-  async function paint() {
-    if(painting||closed)return;
-    painting=true;
-    try {
-      while(dirty&&!closed){
-        dirty=false;
-        const frame=draw();
-        const next:Record<string,string>={};
-        for(const e of frame)next[e.id]=JSON.stringify(e);
-        const removed=Object.keys(previous).filter(id=>!(id in next));
-        if(removed.length){
-          await device.DisplayClear({application_name:manifest.id,element_ids:removed});
-          for(const id of removed)delete previous[id];
-        }
-        const changed=frame.filter(e=>next[e.id]!==previous[e.id]);
-        if(changed.length&&!closed){
-          await device.DisplayDraw({application_name:manifest.id,priority:50,elements:changed});
-          for(const e of changed)previous[e.id]=next[e.id];
+
+export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: () => void, options: MotionOptions = {}) {
+  const motion = makeMotion(manifest.id, options);
+  const previous: Record<string, string> = {};
+  let encoded: Record<string, string> = {};
+  let content: Frame = [], state: string | number | undefined;
+  let closed = false, leaving = false, painting = false, dirty = false, contentDirty = true;
+  let event: MotionEvent | undefined, phase = 0, timer: ReturnType<typeof setTimeout> | undefined;
+
+  function stopTimer() {
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined;
+  }
+
+  function requestPaint() {
+    dirty = true;
+    void paint();
+  }
+
+  function advance() {
+    timer = undefined;
+    if (!event || closed) return;
+    if (event === "leave" || options.reduced?.() || phase === 4) {
+      if (event === "leave" && phase === 0 && !options.reduced?.()) {
+        phase = 3;
+        timer = setTimeout(advance, 70);
+      } else {
+        event = undefined;
+        if (leaving) {
+          closed = true;
+          detach();
+          return;
         }
       }
-    } catch(error){report(error);} finally{painting=false;}
-  }
-  function refresh(){dirty=true;void paint();}
-  const detach=listen("input",event=>{
-    if(closed)return;
-    if(event.key==="back"&&event.action==="short"){
-      closed=true;cleanup?.();setTimeout(detach,0);return;
+    } else {
+      phase++;
+      timer = setTimeout(advance, 65);
     }
-    let key:Key;
-    if(event.key==="encoder")key=event.delta>0?"up":"down";
-    else if(event.key==="ok"||event.key==="start"){
-      if(event.action==="short")key=event.key;
-      else if(event.action==="long")key=event.key==="ok"?"hold-ok":"hold-start";
+    requestPaint();
+  }
+
+  function startMotion(next: MotionEvent) {
+    stopTimer();
+    event = next;
+    phase = options.reduced?.() ? 4 : 0;
+    timer = setTimeout(advance, next === "leave" ? 65 : options.reduced?.() ? 140 : 65);
+  }
+
+  async function paint() {
+    if (painting || closed) return;
+    painting = true;
+    try {
+      while (dirty && !closed) {
+        dirty = false;
+        if (contentDirty) {
+          contentDirty = false;
+          content = draw();
+          encoded = {};
+          for (const element of content) encoded[element.id] = JSON.stringify(element);
+          const next = motion.stateKey(content);
+          if (state !== undefined && next !== state && !event && !leaving) startMotion("change");
+          state = next;
+        }
+        const overlay = event ? motion.elements(event, phase) : [];
+        const encodedOverlay: Record<string, string> = {};
+        for (const element of overlay) encodedOverlay[element.id] = JSON.stringify(element);
+        const removed = Object.keys(previous).filter(id => !(id in encoded) && !(id in encodedOverlay));
+        if (removed.length) {
+          await device.DisplayClear({ application_name:manifest.id, element_ids:removed });
+          for (const id of removed) delete previous[id];
+        }
+        const changed = content.filter(element => encoded[element.id] !== previous[element.id]);
+        for (const element of overlay) {
+          if (encodedOverlay[element.id] !== previous[element.id]) changed.push(element);
+        }
+        if (changed.length && !closed) {
+          await device.DisplayDraw({ application_name:manifest.id, priority:50, elements:changed });
+          for (const element of changed) previous[element.id] = encodedOverlay[element.id] || encoded[element.id];
+        }
+      }
+    } catch (error) { report(error); } finally { painting = false; }
+  }
+
+  function refresh(cue?: MotionCue) {
+    if (closed || leaving) return;
+    if (cue) startMotion(cue);
+    contentDirty = true;
+    requestPaint();
+  }
+
+  const detach = listen("input", action => {
+    if (closed || leaving) return;
+    if (action.key === "back" && action.action === "short") {
+      leaving = true;
+      try { cleanup?.(); } catch (error) { report(error); }
+      startMotion("leave");
+      requestPaint();
+      return;
+    }
+    let key: Key;
+    if (action.key === "encoder") key = action.delta > 0 ? "up" : "down";
+    else if (action.key === "ok" || action.key === "start") {
+      if (action.action === "short") key = action.key;
+      else if (action.action === "long") key = action.key === "ok" ? "hold-ok" : "hold-start";
       else return;
-    }else return;
-    try{input(key);refresh();}catch(error){report(error);}
+    } else return;
+    try {
+      startMotion(key);
+      input(key);
+      refresh();
+    } catch (error) { report(error); }
   });
+  startMotion("open");
   refresh();
   return refresh;
 }
