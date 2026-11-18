@@ -64,10 +64,22 @@ function available(frame: Elements, line: Text, y0: number, y1: number): number 
   return Math.max(1, right-x);
 }
 
+// Small native glyphs need brighter strokes against the unlit matrix.
+function legibleInk(color:string|undefined):string|undefined {
+  if(!color || !/^#[0-9a-f]{6}(ff)?$/i.test(color))return color;
+  const rgb=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16));
+  const brightness=rgb[0]*0.2126+rgb[1]*0.7152+rgb[2]*0.0722;
+  if(brightness>=170)return color;
+  const amount=(170-brightness)/(255-brightness);
+  return "#"+rgb.map(v=>Math.round(v+(255-v)*amount).toString(16).padStart(2,"0")).join("")+"FF";
+}
+
 export function layoutFront(frame: Elements): Box[] {
   const lines = frame.filter((e): e is Text => e.type === "text" && e.display !== "back");
   if (lines.length === 2) {
     const [caption, value] = lines;
+    if(caption.color)caption.color=legibleInk(caption.color);
+    if(value.color)value.color=legibleInk(value.color);
     const valueWidth = value.id === "total" ? 43 : available(frame, value, 8, 16);
     const number = fit(value.text, valueWidth, 10, sizes);
     const valueBox = position(value, number, valueWidth, 16);

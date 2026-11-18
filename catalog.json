@@ -2,5 +2,5 @@
   "category": "info-feeds",
   "short_description": "Track running kilometers against your annual Garmin goal, with monthly totals and weekly distance remaining.",
   "description": "Track running kilometers against your annual Garmin goal, with monthly totals and weekly distance remaining. Use original Garmin running FIT activities. Install companion/requirements.txt in the companion's Python environment. Set folder, target_km and your IANA time zone. Cycling and prior years are excluded. The same running session exported twice counts once. Browse the gap to today's linear target and the monthly distribution. Only summaries are sent to the display.",
-  "changelog": "First public version."
+  "changelog": "New screen transitions and high-contrast LED previews."
 }

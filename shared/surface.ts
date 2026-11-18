@@ -1,3 +1,4 @@
+import {pageTurn,pageKey} from "./page-turn";
 import { makeMotion, type MotionOptions, type MotionCue, type MotionEvent, type ActionKey } from "./motion";
 import { device } from "./device";
 import { layoutFront, rearLine, clearTextArea } from "./typography";
@@ -31,13 +32,15 @@ export function read<T>(key:string,fallback:T):T {
 export function persist(key:string,value:unknown) {localStorage.setItem(key,JSON.stringify(value));}
 export function report(error:unknown) {console.error(manifest.id+": "+String(error));}
 
-export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: () => void, options: MotionOptions = {}) {
+export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: () => void, options: MotionOptions & {pressWheel?:()=>void; painted?:(frame:Frame)=>void} = {}) {
   const motion = makeMotion(manifest.id, options);
   const previous: Record<string, string> = {};
+  let departing:Frame=[];
   let frontText: ReturnType<typeof layoutFront> = [];
   let encoded: Record<string, string> = {};
   let content: Frame = [], state: string | number | undefined;
   let closed = false, leaving = false, painting = false, dirty = false, contentDirty = true;
+  let pending: MotionEvent | undefined, page = "", hasFrame = false, turning = false;
   let event: MotionEvent | undefined, phase = 0, timer: ReturnType<typeof setTimeout> | undefined;
 
   function stopTimer() {
@@ -59,6 +62,8 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
         timer = setTimeout(advance, 70);
       } else {
         event = undefined;
+        turning = false;
+        departing=[];
         if (leaving) {
           closed = true;
           detach();
@@ -73,7 +78,7 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
   }
 
   function startMotion(next: MotionEvent) {
-    if (!motion.enabled && next !== "leave") return;
+    if (!motion.enabled && !turning && next !== "leave") return;
     stopTimer();
     event = next;
     phase = options.reduced?.() ? 4 : 0;
@@ -88,16 +93,34 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
         dirty = false;
         if (contentDirty) {
           contentDirty = false;
+          const prior=content;
           content = draw();
           frontText = layoutFront(content);
+          const before = encoded;
           encoded = {};
-          for (const element of content) encoded[element.id] = JSON.stringify(element);
+          let different = false;
+          for (const element of content) {
+            const value=JSON.stringify(element);
+            encoded[element.id]=value;
+            if(before[element.id]!==value)different=true;
+          }
           const next = motion.stateKey(content);
-          if (state !== undefined && next !== state && !event && !leaving) startMotion("change");
+          const nextPage = pageKey(content,frontText);
+          const changedPage = hasFrame && (page!==nextPage || state!==next);
+          const reason = pending || (changedPage ? "change" : undefined);
+          pending=undefined;
+          if (hasFrame && reason && (different || changedPage) && !leaving) {
+            departing=prior.filter(e=>e.display!=="back" && (e.type==="xpmbitmap"||e.type==="rectangle"));
+            turning = !options.reduced?.();
+            startMotion(reason);
+          }
+          page=nextPage;
+          hasFrame=true;
           state = next;
         }
         const overlay = event && motion.enabled ? motion.elements(event, phase) : [];
         clearTextArea(overlay, frontText);
+        if (event && turning) overlay.push(...pageTurn(content,frontText,event,phase,departing));
         const encodedOverlay: Record<string, string> = {};
         for (const element of overlay) encodedOverlay[element.id] = JSON.stringify(element);
         const removed = Object.keys(previous).filter(id => !(id in encoded) && !(id in encodedOverlay));
@@ -105,12 +128,13 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
           await device.DisplayClear({ application_name:manifest.id, element_ids:removed });
           for (const id of removed) delete previous[id];
         }
-        const changed = content.filter(element => encoded[element.id] !== previous[element.id]);
+        const changed = content.filter(element => !(element.id in encodedOverlay) && encoded[element.id] !== previous[element.id]);
         for (const element of overlay) {
           if (encodedOverlay[element.id] !== previous[element.id]) changed.push(element);
         }
         if (changed.length && !closed) {
           await device.DisplayDraw({ application_name:manifest.id, priority:50, elements:changed });
+          options.painted?.(content);
           for (const element of changed) previous[element.id] = encodedOverlay[element.id] || encoded[element.id];
         }
       }
@@ -119,7 +143,7 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
 
   function refresh(cue?: MotionCue) {
     if (closed || leaving) return;
-    if (cue) startMotion(cue);
+    if (cue) pending = cue;
     contentDirty = true;
     requestPaint();
   }
@@ -128,11 +152,13 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
     if (closed || leaving) return;
     if (action.key === "back" && action.action === "short") {
       leaving = true;
+      turning = false;
       try { cleanup?.(); } catch (error) { report(error); }
       startMotion("leave");
       requestPaint();
       return;
     }
+    if(action.key==="ok" && action.action==="press" && options.pressWheel){options.pressWheel();return;}
     let key: Key;
     if (action.key === "encoder") key = action.delta > 0 ? "up" : "down";
     else if (action.key === "ok" || action.key === "start") {
@@ -141,7 +167,7 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
       else return;
     } else return;
     try {
-      startMotion(key);
+      pending = key;
       input(key);
       refresh();
     } catch (error) { report(error); }
