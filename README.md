@@ -22,7 +22,7 @@ Choose the next week’s distance with the year’s actual runs in front of you.
 
 ## Example from the emulator
 
-Four exports were checked. Two current-year runs totaled 15 km. A cycling activity and a run from the previous year did not add any distance. Four synthetic FIT files decoded with Garmin's official SDK.
+Four exports were checked. Two current-year runs totaled 15 km. A cycling activity and a run from the previous year did not add any distance. Garmin’s official decoder read the four synthetic FIT files used in the test.
 
 ## Set up the source
 
