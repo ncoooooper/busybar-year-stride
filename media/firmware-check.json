@@ -9,8 +9,8 @@
   ],
   "frames": 54,
   "distinct_frames": 13,
-  "exit": "App io.ncoooooper.yearstride exited: finished; heap peak 87.5 of 128 KiB",
-  "sha256": "a10d05453da51c401155c130988ccd7261654326475e73901dcd334a166cdbda",
+  "exit": "App io.ncoooooper.yearstride exited: finished; heap peak 86.9 of 128 KiB",
+  "sha256": "4f39e24783de53df3e5c3660dbf39c498bc5c58ffe9bb4c6f8277e9d1783171a",
   "pages": [
     {
       "caption": "YEAR DISTANCE",

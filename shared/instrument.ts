@@ -24,7 +24,7 @@ export function instrument(config:InstrumentOptions){
  }
  async function pull(){
   if(closed||loading||!address)return;
-  if(timer!==undefined)clearTimeout(timer);loading=true;
+  if(timer!==undefined)clearTimeout(timer);timer=undefined;loading=true;
   try{
     const r=await fetch(address);if(!r.ok)throw Error("HTTP "+r.status);
     const data=await r.json() as Reading;
@@ -33,7 +33,7 @@ export function instrument(config:InstrumentOptions){
     const changed=last!==null&&last.key!==data.key;last=data;error="";page=Math.min(page,data.pages.length-1);
     if(!closed)refresh(changed?(data.alert?"success":"change"):undefined);
   }catch(e){error=String(e);if(!closed)refresh();}
-  finally{loading=false;if(!closed)timer=setTimeout(()=>void pull(),Math.max(1500,config.cadence)*(error?2:1));}
+  finally{loading=false;if(!closed)timer=setTimeout(()=>{timer=undefined;void pull();},Math.max(1500,config.cadence)*(error?2:1));}
  }
  const refresh=surface(draw,k=>{
   if(k==="up"||k==="down"){if(last&&!pinned)page=wrap(page+(k==="up"?1:-1),last.pages.length);}
