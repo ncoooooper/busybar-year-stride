@@ -39,7 +39,7 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
   let frontText: ReturnType<typeof layoutFront> = [];
   let encoded: Record<string, string> = {};
   let content: Frame = [], state: string | number | undefined;
-  let closed = false, leaving = false, painting = false, dirty = false, contentDirty = true;
+  let closed = false, painting = false, dirty = false, contentDirty = true;
   let pending: MotionEvent | undefined, page = "", hasFrame = false, turning = false;
   let event: MotionEvent | undefined, phase = 0, timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -56,20 +56,10 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
   function advance() {
     timer = undefined;
     if (!event || closed) return;
-    if (event === "leave" || options.reduced?.() || phase === 4) {
-      if (event === "leave" && phase === 0 && motion.enabled && !options.reduced?.()) {
-        phase = 3;
-        timer = setTimeout(advance, 70);
-      } else {
-        event = undefined;
-        turning = false;
-        departing=[];
-        if (leaving) {
-          closed = true;
-          detach();
-          return;
-        }
-      }
+    if (options.reduced?.() || phase === 4) {
+      event = undefined;
+      turning = false;
+      departing = [];
     } else {
       phase++;
       timer = setTimeout(advance, 65);
@@ -78,11 +68,11 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
   }
 
   function startMotion(next: MotionEvent) {
-    if (!motion.enabled && !turning && next !== "leave") return;
+    if (!motion.enabled && !turning) return;
     stopTimer();
     event = next;
     phase = options.reduced?.() ? 4 : 0;
-    timer = setTimeout(advance, next === "leave" ? 65 : options.reduced?.() ? 140 : 65);
+    timer = setTimeout(advance, options.reduced?.() ? 140 : 65);
   }
 
   async function paint() {
@@ -109,7 +99,7 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
           const changedPage = hasFrame && (page!==nextPage || state!==next);
           const reason = pending || (changedPage ? "change" : undefined);
           pending=undefined;
-          if (hasFrame && reason && (different || changedPage) && !leaving) {
+          if (hasFrame && reason && (different || changedPage) && !closed) {
             departing=prior.filter(e=>e.display!=="back" && (e.type==="xpmbitmap"||e.type==="rectangle"));
             turning = !options.reduced?.();
             startMotion(reason);
@@ -138,24 +128,24 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
           for (const element of changed) previous[element.id] = encodedOverlay[element.id] || encoded[element.id];
         }
       }
-    } catch (error) { report(error); } finally { painting = false; }
+    } catch (error) { if (!closed) report(error); } finally { painting = false; }
   }
 
   function refresh(cue?: MotionCue) {
-    if (closed || leaving) return;
+    if (closed) return;
     if (cue) pending = cue;
     contentDirty = true;
     requestPaint();
   }
 
   const detach = listen("input", action => {
-    if (closed || leaving) return;
-    if (action.key === "back" && action.action === "short") {
-      leaving = true;
-      turning = false;
+    if (closed) return;
+    if (action.key === "back" && (action.action === "press" || action.action === "short" || action.action === "long")) {
+      // Firmware takes ownership of both displays on Back. No pending frame may draw or erase IDs after that.
+      closed = true;
+      stopTimer();
       try { cleanup?.(); } catch (error) { report(error); }
-      startMotion("leave");
-      requestPaint();
+      detach();
       return;
     }
     if(action.key==="ok" && action.action==="press" && options.pressWheel){options.pressWheel();return;}
