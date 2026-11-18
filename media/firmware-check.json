@@ -10,7 +10,7 @@
   "frames": 54,
   "distinct_frames": 13,
   "exit": "App io.ncoooooper.yearstride exited: finished; heap peak 86.9 of 128 KiB",
-  "sha256": "a523066c2430ac9bd1cf8c4036af4424383deb978a1fd96974833594f86de2b4",
+  "sha256": "853f658303bbbc746041ece1209c1a183bc87b0540cdb6dc176a7ff5c140142b",
   "pages": [
     {
       "caption": "YEAR DISTANCE",
@@ -161,9 +161,9 @@
     ],
     "frames": 128,
     "distinct_by_flow": [
-      7,
-      11
+      2,
+      2
     ],
-    "exit": "App io.btype.yearstride exited: finished; heap peak 88.0 of 128 KiB"
+    "exit": "App io.btype.yearstride exited: finished; heap peak 90.2 of 128 KiB"
   }
 }

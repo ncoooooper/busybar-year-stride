@@ -1,8 +1,8 @@
 import {surface,label,panel,rect,wrap,type Frame,type MotionOptions} from "./surface";
 import {loadValues} from "./settings";
 
-export type InstrumentOptions={title:string;primary:string;accent:string;cadence:number;motion:MotionOptions;setup:string};
-type Page={caption:string;value:string;lines:string[];fraction?:number};
+export type InstrumentOptions={title:string;primary:string;accent:string;cadence:number;motion:MotionOptions;setup:string;marks?:(page:Page,pages:Page[],index:number)=>Frame};
+export type Page={caption:string;value:string;lines:string[];fraction?:number};
 type Reading={pages:Page[];state:string;key:string;alert?:boolean;error?:string};
 
 export function instrument(config:InstrumentOptions){
@@ -14,8 +14,8 @@ export function instrument(config:InstrumentOptions){
   const caption=p?.caption||config.primary;
   const value=p?.value||(address?error?"Offline":"Sync...":"Set URL");
   const right=typeof fill==="number"?Math.max(0,Math.min(14,Math.round(fill*14))):0;
-  const marks:Frame=[];
-  if(typeof fill==="number")for(let i=0;i<7;i++)marks.push(rect("dot"+i,50+i*3,10-Math.floor(i/2),2,4+Math.floor(i/2),i*2<right?baseColor:"#25343EFF"));
+  const marks:Frame=p&&last&&config.marks?config.marks(p,last.pages,page):[];
+  if(!config.marks&&typeof fill==="number")for(let i=0;i<7;i++)marks.push(rect("dot"+i,50+i*3,10-Math.floor(i/2),2,4+Math.floor(i/2),i*2<right?baseColor:"#25343EFF"));
   return [label("cap",caption,1,0,baseColor,"front","tiny"),
     label("num",value,1,6,"#FAF3DCFF","front","small"),...marks,
     ...panel(config.title,[error?(last?"Offline / last reading":"Source unavailable"):last?.state||"Setup",

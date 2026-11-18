@@ -131,6 +131,8 @@ export const motifs = {
 } satisfies Record<string, Motif>;
 
 export interface MotionOptions {
+  /** Use the app’s own reading or illustration without a transient input sprite. */
+  enabled?: boolean;
   motif?: keyof typeof motifs | Motif;
   /** Six-digit RGB colors for the front sprite. */
   color?: string;
@@ -155,26 +157,28 @@ const profiles: Record<string, Profile> = {
   quietqueue: ["ticket", "#66BDAC", "#F5F0B1", "head"],
   canarywatch: ["trace", "#DFA652", "#FCE8A3", "rear-3"],
 };
-const fallback: Profile = ["trace", "#60CEB9", "#EBF8DB", ""];
+
 
 export function makeMotion(id: string, options: MotionOptions) {
   const app = id.slice(id.lastIndexOf(".") + 1);
-  const profile = profiles[app] || fallback;
-  const motif = typeof options.motif === "function" ? options.motif : motifs[options.motif || profile[0]];
+  const profile = profiles[app];
+  const enabled = options.enabled ?? Boolean(profile || options.motif || options.overlay);
+  const motif = typeof options.motif === "function" ? options.motif : options.motif ? motifs[options.motif] : profile ? motifs[profile[0]] : undefined;
   function stateKey(frame: Elements) {
     if (options.stateKey) return options.stateKey();
-    const item = profile[3] && frame.find(element => element.id === profile[3]);
+    const item = profile && profile[3] && frame.find(element => element.id === profile[3]);
     return item && item.type === "text" ? item.text : "";
   }
   function elements(event: MotionEvent, step: number): Elements {
     if (options.overlay) return options.overlay(event, step);
+    if (!motif) return [];
     const art = new Pixels();
     const reverse = event === "down" || event === "leave";
     const t = reverse ? 4 - step : step;
     motif(art, t, event);
     const held = event === "hold-start" || event === "hold-ok";
-    const ink = event === "warning" ? "#F7AA76" : options.color || profile[1];
-    const sprite = art.xpm(ink, options.shine || profile[2], app === "pixelloom");
+    const ink = event === "warning" ? "#F7AA76" : options.color || profile?.[1] || "#60CEB9";
+    const sprite = art.xpm(ink, options.shine || profile?.[2] || "#EBF8DB", app === "pixelloom");
     let x = 55, y = 2;
     switch (event) {
       case "up": x = 52 + step; break;
@@ -205,5 +209,5 @@ export function makeMotion(id: string, options: MotionOptions) {
         display:"back", z_index:8, fill:"solid", fill_colors:["#FFFFFFFF"], border_width:0 },
     ];
   }
-  return { elements, stateKey };
+  return { enabled, elements, stateKey };
 }

@@ -4,6 +4,8 @@ Track running kilometers against your annual Garmin goal, with monthly totals an
 
 Choose the next week’s distance with the year’s actual runs in front of you. The total shows what you have done; the plan gap shows where that puts you on today’s share of the annual target.
 
+The twelve columns show January through December. Heights compare the recorded distance in each month with the busiest month. Turn to a month to highlight its column.
+
 ## Compare distance against today’s plan
 
 1. Set the goal in kilometers, the FIT folder and the time zone used for the year boundary.

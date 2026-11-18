@@ -54,7 +54,7 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
     timer = undefined;
     if (!event || closed) return;
     if (event === "leave" || options.reduced?.() || phase === 4) {
-      if (event === "leave" && phase === 0 && !options.reduced?.()) {
+      if (event === "leave" && phase === 0 && motion.enabled && !options.reduced?.()) {
         phase = 3;
         timer = setTimeout(advance, 70);
       } else {
@@ -73,6 +73,7 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
   }
 
   function startMotion(next: MotionEvent) {
+    if (!motion.enabled && next !== "leave") return;
     stopTimer();
     event = next;
     phase = options.reduced?.() ? 4 : 0;
@@ -95,7 +96,7 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
           if (state !== undefined && next !== state && !event && !leaving) startMotion("change");
           state = next;
         }
-        const overlay = event ? motion.elements(event, phase) : [];
+        const overlay = event && motion.enabled ? motion.elements(event, phase) : [];
         clearTextArea(overlay, frontText);
         const encodedOverlay: Record<string, string> = {};
         for (const element of overlay) encodedOverlay[element.id] = JSON.stringify(element);
