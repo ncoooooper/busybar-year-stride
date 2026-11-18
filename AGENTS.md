@@ -184,3 +184,12 @@ Run `busy-emulator typecheck` and `busy-emulator build`, then check:
 - [ ] Requests are infrequent and do not pile up; failures back off instead of retrying in a tight loop.
 - [ ] Frames send only changed elements and are redrawn only when something visible changes.
 - [ ] `src/appmeta/manifest.json` has a valid `id`, `name` and semver `version`, and `api_version` is no higher than needed.
+
+## BusyBar Factory publishing
+
+For factory releases, publish to `ncoooooper` with Natalia Bondar's ED25519 SSH key
+(`SHA256:zN1uvxPuEZLXcd5Avrx5Q9VY3Aq3WzAVwSZCBkDgqls`). Configure Git locally before the first commit.
+Natalia's commit identity is `Natalia Bondar <336576226+ncoooooper@users.noreply.github.com>`. Check both author and committer on the
+commits being published. If either identity or the SSH key differs, stop and
+resolve the mismatch before pushing. Create GitHub repositories through a
+session authenticated as `ncoooooper`.
