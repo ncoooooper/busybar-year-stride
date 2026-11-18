@@ -15,3 +15,7 @@ dist
 .idea
 .DS_Store
 *.sw?
+
+__pycache__/
+config.json
+*.pyc

@@ -1,0 +1,150 @@
+{
+  "id": "BB-021",
+  "source": "Four synthetic FIT files decoded with Garmin's official SDK.",
+  "scenario": "Summed the two 2026 running sessions to 15 km. The ride and prior-year run were excluded. Browsed the gap and monthly totals.",
+  "keys": [
+    "up",
+    "down",
+    "ok"
+  ],
+  "frames": 54,
+  "distinct_frames": 13,
+  "exit": "App io.ncoooooper.yearstride exited: finished; heap peak 87.5 of 128 KiB",
+  "sha256": "a10d05453da51c401155c130988ccd7261654326475e73901dcd334a166cdbda",
+  "pages": [
+    {
+      "caption": "YEAR DISTANCE",
+      "value": "15.0km",
+      "lines": [
+        "2 runs / 2026",
+        "Target 1000 km"
+      ],
+      "fraction": 0.015
+    },
+    {
+      "caption": "PLAN GAP",
+      "value": "-867.2km",
+      "lines": [
+        "Relative to today",
+        "Need 156.7 km/week"
+      ]
+    },
+    {
+      "caption": "MONTH 1",
+      "value": "0.0km",
+      "lines": [
+        "2026-01",
+        "Of 15.0 km this year"
+      ],
+      "fraction": 0
+    },
+    {
+      "caption": "MONTH 2",
+      "value": "0.0km",
+      "lines": [
+        "2026-02",
+        "Of 15.0 km this year"
+      ],
+      "fraction": 0
+    },
+    {
+      "caption": "MONTH 3",
+      "value": "0.0km",
+      "lines": [
+        "2026-03",
+        "Of 15.0 km this year"
+      ],
+      "fraction": 0
+    },
+    {
+      "caption": "MONTH 4",
+      "value": "0.0km",
+      "lines": [
+        "2026-04",
+        "Of 15.0 km this year"
+      ],
+      "fraction": 0
+    },
+    {
+      "caption": "MONTH 5",
+      "value": "0.0km",
+      "lines": [
+        "2026-05",
+        "Of 15.0 km this year"
+      ],
+      "fraction": 0
+    },
+    {
+      "caption": "MONTH 6",
+      "value": "0.0km",
+      "lines": [
+        "2026-06",
+        "Of 15.0 km this year"
+      ],
+      "fraction": 0
+    },
+    {
+      "caption": "MONTH 7",
+      "value": "0.0km",
+      "lines": [
+        "2026-07",
+        "Of 15.0 km this year"
+      ],
+      "fraction": 0
+    },
+    {
+      "caption": "MONTH 8",
+      "value": "0.0km",
+      "lines": [
+        "2026-08",
+        "Of 15.0 km this year"
+      ],
+      "fraction": 0
+    },
+    {
+      "caption": "MONTH 9",
+      "value": "15.0km",
+      "lines": [
+        "2026-09",
+        "Of 15.0 km this year"
+      ],
+      "fraction": 1
+    },
+    {
+      "caption": "MONTH 10",
+      "value": "0.0km",
+      "lines": [
+        "2026-10",
+        "Of 15.0 km this year"
+      ],
+      "fraction": 0
+    },
+    {
+      "caption": "MONTH 11",
+      "value": "0.0km",
+      "lines": [
+        "2026-11",
+        "Of 15.0 km this year"
+      ],
+      "fraction": 0
+    },
+    {
+      "caption": "MONTH 12",
+      "value": "0.0km",
+      "lines": [
+        "2026-12",
+        "Of 15.0 km this year"
+      ],
+      "fraction": 0
+    }
+  ],
+  "initial": {
+    "caption": "YEAR DISTANCE",
+    "value": "15.0km",
+    "lines": [
+      "2 runs / 2026",
+      "Target 1000 km"
+    ],
+    "fraction": 0.015
+  }
+}

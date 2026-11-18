@@ -2,7 +2,7 @@
   "name": "busybar-year-stride",
   "private": true,
   "version": "0.1.0",
-  "description": "Year Stride",
+  "description": "Track running kilometers against your annual Garmin goal, with monthly totals and weekly distance remaining.",
   "author": "ncoooooper",
   "type": "module",
   "scripts": {
