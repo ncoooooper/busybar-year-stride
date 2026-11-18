@@ -1,5 +1,6 @@
 import { makeMotion, type MotionOptions, type MotionCue, type MotionEvent, type ActionKey } from "./motion";
 import { device } from "./device";
+import { layoutFront, rearLine, clearTextArea } from "./typography";
 import manifest from "../src/appmeta/manifest.json";
 import type { DisplayDrawParams } from "@busy-app/busy-lib";
 
@@ -10,15 +11,18 @@ export const white = "#FFFFFFFF";
 export const mint = "#62EAC2FF";
 export const amber = "#FFB459FF";
 type Display = "front" | "back";
-export function label(id: string, text: string, x: number, y: number, color = white, display: Display = "front", font: "tiny" | "small" | "bold" = "small"): Frame[number] {
+export function label(id: string, text: string, x: number, y: number, color = white, display: Display = "front", font: "tiny" | "small" | "bold" = "small"): Extract<Frame[number], {type: "text"}> {
   return {id, type:"text", text, x, y, color, display, font, align:"top_left", z_index:1};
 }
 export function rect(id:string,x:number,y:number,width:number,height:number,color:string,display:Display="front"):Frame[number] {
   return {id,type:"rectangle",x,y,width,height,display,align:"top_left",fill:"solid",fill_colors:[color],border_width:0};
 }
 export function panel(title:string, lines:string[]):Frame {
-  return [label("rear-title",title,2,0,white,"back","bold"),rect("rule",2,13,139,1,"#888888FF","back"),
-    ...lines.slice(0,6).map((line,i)=>label("rear-"+i,line,2,16+i*10,white,"back"))];
+  const rows = lines.slice(0,6);
+  const firstBottom = 80 - (rows.length-1)*10;
+  return [rearLine(label("rear-title",title,2,0,white,"back"),143,firstBottom-15,11,true),
+    rect("rule",2,firstBottom-12,143,1,"#888888FF","back"),
+    ...rows.map((line,i)=>rearLine(label("rear-"+i,line,2,0,white,"back"),143,firstBottom+i*10,9))];
 }
 export function wrap(n:number,count:number) {return (n%count+count)%count;}
 export function read<T>(key:string,fallback:T):T {
@@ -30,6 +34,7 @@ export function report(error:unknown) {console.error(manifest.id+": "+String(err
 export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: () => void, options: MotionOptions = {}) {
   const motion = makeMotion(manifest.id, options);
   const previous: Record<string, string> = {};
+  let frontText: ReturnType<typeof layoutFront> = [];
   let encoded: Record<string, string> = {};
   let content: Frame = [], state: string | number | undefined;
   let closed = false, leaving = false, painting = false, dirty = false, contentDirty = true;
@@ -83,6 +88,7 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
         if (contentDirty) {
           contentDirty = false;
           content = draw();
+          frontText = layoutFront(content);
           encoded = {};
           for (const element of content) encoded[element.id] = JSON.stringify(element);
           const next = motion.stateKey(content);
@@ -90,6 +96,7 @@ export function surface(draw: () => Frame, input: (key: Key) => void, cleanup?: 
           state = next;
         }
         const overlay = event ? motion.elements(event, phase) : [];
+        clearTextArea(overlay, frontText);
         const encodedOverlay: Record<string, string> = {};
         for (const element of overlay) encodedOverlay[element.id] = JSON.stringify(element);
         const removed = Object.keys(previous).filter(id => !(id in encoded) && !(id in encodedOverlay));

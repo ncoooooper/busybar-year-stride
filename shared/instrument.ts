@@ -16,8 +16,8 @@ export function instrument(config:InstrumentOptions){
   const right=typeof fill==="number"?Math.max(0,Math.min(14,Math.round(fill*14))):0;
   const marks:Frame=[];
   if(typeof fill==="number")for(let i=0;i<7;i++)marks.push(rect("dot"+i,50+i*3,10-Math.floor(i/2),2,4+Math.floor(i/2),i*2<right?baseColor:"#25343EFF"));
-  return [label("cap",caption.slice(0,16),1,0,baseColor,"front","tiny"),
-    label("num",value.slice(0,14),1,6,"#FAF3DCFF","front","small"),...marks,
+  return [label("cap",caption,1,0,baseColor,"front","tiny"),
+    label("num",value,1,6,"#FAF3DCFF","front","small"),...marks,
     ...panel(config.title,[error?(last?"Offline / last reading":"Source unavailable"):last?.state||"Setup",
      ...(p?p.lines.slice(0,3):[config.setup,"Set bridge URL in settings"]),
      (page+1)+"/"+(last?.pages.length||1)+(pinned?"  Pinned":"  Wheel: browse"),"Click: sync / Start: pin"])];
